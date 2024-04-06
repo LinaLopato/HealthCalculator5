@@ -26,30 +26,47 @@ age
 gender
 pulse
 h_level
+harrington1
 calc()
 }
 class Resp{
 age
 time
 h_level
+harrington1
 calc()
 }
 class IMT{
 weight
 height
 h_level
+harrington2
 calc()
 }
 class Health{
 h_level
-harrington
-
 diagram()
 }
 class User{
 input()
 output()
 }
+class Harrington1{
+y_bad
+y_good
+h_level
+y_list
+calc_d(y)
+diagram()
+}
+class Harrington2{
+y_optimum
+h_level
+y_list
+calc_d(y)
+diagram()
+}
+Harrington1 "2"--"1" Harrington2
 Health -l- Heart
 Health - IMT
 Health -u- User
