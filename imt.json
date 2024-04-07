@@ -1,0 +1,19 @@
+{
+  "optimum": 21,
+  "opt_d": 0.93,
+  "min":
+      {
+        "good": 17,
+        "bad": 10
+      },
+  "max":
+      {
+        "good": 35,
+        "bad": 64
+      },
+  "range":
+      {
+        "begin": 10,
+        "end": 65
+      }
+}

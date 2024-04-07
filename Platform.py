@@ -12,6 +12,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+# import json
 
 
 def set_application_parameters():
@@ -24,6 +25,9 @@ def set_application_parameters():
     pd.set_option('display.max_columns', 20)  # Число показываемых колонок
     pd.set_option('display.width', 200)  # Ширина выводимой таблицы
     pd.set_option('display.float_format', '{:.0f}'.format)  # Показ целых в Датафрейме
+
+
+set_application_parameters()
 
 
 class User:
@@ -69,7 +73,7 @@ class Health:
         a1.axes.get_xaxis().set_visible(False)
         a1.axes.get_yaxis().set_visible(False)
         ax = fig.add_subplot(121, projection='polar')
-        ax.plot(theta, results, linewidth=2, color="red")
+        ax.plot(theta, results, linewidth=4, color="red", marker='o')
         ax.set_thetagrids(range(0, 360, int(360 / len(params))), params)
         plt.yticks(np.arange(0, 110, 10), fontsize=10)
         ax.set(facecolor='#f3f3f3')
@@ -102,12 +106,12 @@ class Harrington1:
         """Ахназарова С.Л., Кафаров В.В.; Методы оптимизации эксперимента в химической технологии;1985, с.209"""
         self.health = _health  # Ссылка на родителя
         self.h_good = -math.log(math.log(1 / 0.80))  # Хороший результат по Харрингтону b_0 + b_1*y_good = h_good (1)
-        self.y_good = 0  # Назначаем "хороший" параметр d = 0.8
         self.h_bad = -math.log(math.log(1 / 0.20))  # Плохой результат по Харрингтону b_0 + b_1 * y_bad = h_bad (2)
-        self.y_bad = 0  # Назначаем "плохой" параметр d = 0.2
         self.b_0: float = 0  # Первый коэффициент в уравнении Харрингтона
         self.b_1: float = 0  # Второй коэффициент в уравнении Харрингтона
         self.d: float = 0  # Частная функция желательности Харрингтона для параметра y
+        # self.y_good = 0  # Назначаем "хороший" параметр d = 0.8
+        # self.y_bad = 0  # Назначаем "плохой" параметр d = 0.2
 
     def calc(self, y_good: float, y_bad: float, y: float):
         """ Ахназарова с. 207   d = exp [—ехр(— у')]  у’ = bo + b1 * у' """
@@ -123,7 +127,7 @@ class Harrington1:
 
 
 class Harrington11:
-    """Односторонний критерий Харрингтона """
+    """Два односторонних критерия Харрингтона """
 
     def __init__(self, _health: Health = None):
         """Ахназарова С.Л., Кафаров В.В.; Методы оптимизации эксперимента в химической технологии;1985, с.209"""
@@ -175,7 +179,7 @@ class Harrington2:
         self.d = math.exp(-math.fabs(y_d) ** n)  # Считаем d по Ахназаровой с.207
         return self.d
 
-    def calc2(self, x: float):  # Написана Матвеем
+    def calc2(self, x: float):  # Написано Матвеем
         self.y1 = (2 * self.param - (self.y_max + self.y_min)) / (self.y_max - self.y_min)
         self.n = (math.log(math.log(1 / self.d_param))) / (math.log(math.fabs(self.y1)))
         self.y = (2 * x - (self.y_max + self.y_min)) / (self.y_max - self.y_min)
@@ -220,7 +224,9 @@ class Heart:
 
 
 if __name__ == '__main__':
-    # user_1 = User()  # Создаем объект Пользователь
+    # set_application_parameters()
+
+    user_1 = User()  # Создаем объект Пользователь
     # print(user_1.health.heart.df)
     # user_1.health.heart.pulse('women', 26, 79)
     # user_2 = User()  # Создаем объект Пользователь
@@ -228,15 +234,31 @@ if __name__ == '__main__':
 
     # print('Показатели Харрингтона и диаграмма здоровья отрисованы')
 
+    # user_1.health.create_diagram(['ИМТ', 'Сердце', 'Легкие','Разум'], [52, 81, 92, 88])
     # user_1.health.create_diagram(['ИМТ', 'Сердце', 'Легкие'], [52, 81, 92])
-
-    set_application_parameters()
+    # user_1.health.create_diagram(['ИМТ', 'Сердце',], [52, 81])
+    user_1.health.create_diagram(['ИМТ', ], [52, ])
 
 
     def HarringtonShow():
         """Просмотр """
+        # with open('imt.json', 'r') as f:
+        #     data = json.load(f)
+        #
+        # imt_range = range(data["range"]["begin"], data["range"]["end"], 1)
+        # har_1 = Harrington1()
+        # d_range_1 = []
+        # for y in imt_range:
+        #     if y > data["optimum"]:
+        #         d = har_1.calc(data["max"]["good"], data["max"]["bad"], y)
+        #     elif y < data["optimum"]:
+        #         d = har_1.calc(data["min"]["good"], data["min"]["bad"], y)
+        #     else:
+        #         d = data["opt_d"]
+        #     d_range_1.append(d)
+
         imt_range = range(10, 65, 1)
-        # imt_range = range(5, 80, 1)
+        # imt_range = range(5, 81, 1)
         har_1 = Harrington1()
         y_bad_min = 10
         y_good_min = 15
@@ -255,7 +277,6 @@ if __name__ == '__main__':
 
         # print(d_range)
         plt.plot(imt_range, d_range_1, label="two one side", marker="o", ms=6, mfc='w')
-        # plt.show()
 
         har_2 = Harrington2()
         d_range_2 = []
@@ -269,8 +290,8 @@ if __name__ == '__main__':
         plt.legend(loc='best')
         plt.show()
 
-
     HarringtonShow()
+
 # user_2.health.create_diagram(['ИМТ', 'Сердце', 'Легкие'], [60, 70, 80])
 
 # print('y_max = 24, y_min = 19 d = ', round(user_1.health.harrington2.calc(24, 19, 19), 3))

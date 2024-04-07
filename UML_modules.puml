@@ -25,14 +25,12 @@ class Heart{
 age
 gender
 pulse
-h_level
 harrington1
 calc()
 }
 class Resp{
 age
 time
-h_level
 harrington1
 calc()
 }
@@ -57,14 +55,14 @@ y_good
 h_level
 y_list
 calc_d(y)
-diagram()
+calibrate()
 }
 class Harrington2{
 y_optimum
+d_optimum
 h_level
-y_list
 calc_d(y)
-diagram()
+calibrate()
 }
 Harrington1 "2"--"1" Harrington2
 Health -l- Heart

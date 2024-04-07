@@ -1,0 +1,23 @@
+{
+  "load": "Dataframe load",
+  "df": [
+    {
+      "gender": "man",
+      "data": [
+        {
+          "good": 46,
+          "bad": 18
+        }
+      ]
+    },
+    {
+      "gender": "women",
+      "data": [
+        {
+          "good": 41,
+          "bad": 15
+        }
+      ]
+    }
+  ]
+}
