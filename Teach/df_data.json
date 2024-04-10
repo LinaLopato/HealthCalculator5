@@ -1,5 +1,4 @@
 {
-  "load": "Dataframe load",
   "df": [
     {
       "gender": "man",
@@ -19,5 +18,6 @@
         }
       ]
     }
-  ]
+  ],
+  "load": "Dataframe load"
 }
