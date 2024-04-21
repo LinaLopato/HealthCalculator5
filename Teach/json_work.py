@@ -59,7 +59,7 @@ input_dict = json.loads(input_json)
 
 # Filter python objects with list comprehensions
 output_dict = [x for x in input_dict if x['type'] == '1' and x['name'] == 'name 3']
-# output_dict = [x for x in input_dict if int(x['type']) > 1]
+
 
 # Transform python object back into json
 output_json = json.dumps(output_dict)

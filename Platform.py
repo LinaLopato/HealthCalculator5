@@ -7,12 +7,12 @@ UML схема модуля
 Сценарий работы модуля:
 Тест модуля находится в папке model/tests.
 """
+import json
 import math
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-# import json
 
 
 def set_application_parameters():
@@ -242,38 +242,38 @@ if __name__ == '__main__':
 
     def HarringtonShow():
         """Просмотр """
-        # with open('imt.json', 'r') as f:
-        #     data = json.load(f)
-        #
-        # imt_range = range(data["range"]["begin"], data["range"]["end"], 1)
-        # har_1 = Harrington1()
-        # d_range_1 = []
-        # for y in imt_range:
-        #     if y > data["optimum"]:
-        #         d = har_1.calc(data["max"]["good"], data["max"]["bad"], y)
-        #     elif y < data["optimum"]:
-        #         d = har_1.calc(data["min"]["good"], data["min"]["bad"], y)
-        #     else:
-        #         d = data["opt_d"]
-        #     d_range_1.append(d)
+        with open('imt.json', 'r') as f:
+            data = json.load(f)
 
-        imt_range = range(10, 65, 1)
-        # imt_range = range(5, 81, 1)
+        imt_range = range(data["range"]["begin"], data["range"]["end"], 1)
         har_1 = Harrington1()
-        y_bad_min = 10
-        y_good_min = 15
-        y_bad_max = 64
-        y_good_max = 45
-        y_optimum = 21
         d_range_1 = []
         for y in imt_range:
-            if y > y_optimum:
-                d = har_1.calc(y_good_max, y_bad_max, y)
-            elif y < y_optimum:
-                d = har_1.calc(y_good_min, y_bad_min, y)
+            if y > data["optimum"]:
+                d = har_1.calc(data["max"]["good"], data["max"]["bad"], y)
+            elif y < data["optimum"]:
+                d = har_1.calc(data["min"]["good"], data["min"]["bad"], y)
             else:
-                d = 0.98
+                d = data["opt_d"]
             d_range_1.append(d)
+
+        # imt_range = range(10, 65, 1)
+        # # imt_range = range(5, 81, 1)
+        # har_1 = Harrington1()
+        # y_bad_min = 10
+        # y_good_min = 15
+        # y_bad_max = 64
+        # y_good_max = 45
+        # y_optimum = 21
+        # d_range_1 = []
+        # for y in imt_range:
+        #     if y > y_optimum:
+        #         d = har_1.calc(y_good_max, y_bad_max, y)
+        #     elif y < y_optimum:
+        #         d = har_1.calc(y_good_min, y_bad_min, y)
+        #     else:
+        #         d = 0.98
+        #     d_range_1.append(d)
 
         # print(d_range)
         plt.plot(imt_range, d_range_1, label="two one side", marker="o", ms=6, mfc='w')
@@ -289,6 +289,7 @@ if __name__ == '__main__':
         plt.xlabel('imt', loc='right', fontsize=12)
         plt.legend(loc='best')
         plt.show()
+
 
     HarringtonShow()
 

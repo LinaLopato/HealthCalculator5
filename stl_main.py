@@ -1,38 +1,54 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
 import streamlit as st
-# from streamlit.web.cli import main
-# import sys
 
-# import numpy as np
-# import matplotlib.pyplot as plt
+import health_sys as hs
 
+h_s = hs
+user = h_s.User()
+health = hs.Health()
+health.user = user
 st.title("Калькулятор здоровья")
-page = st.sidebar.selectbox("Подсистема организма",
-                            ["Жировой запас",
-                             "Сердце",
-                             "Легкие"
-                             ])
-st.write(f'Ваш ИМТ = 22')
-
+with st.sidebar:
+    page = st.radio(
+        "Подсистема организма",
+        ("Сердце", "Жировой запас", "Легкие")
+    )
 if page == "Жировой запас":
     st.header("""Индекс массы тела (ИМТ)""")
     st.text("Для расчета индекса массы тела введите свой:")
     weight = st.number_input(' вес в килограммах', value=72, placeholder="Вес в килограммах")
     height = st.number_input(' рост в сантиметрах', value=170, placeholder="Рост в см")
-    # number = st.number_input("Insert a number", value=None, placeholder="Type a number...")
 
     if st.button('Рассчитать ИМТ'):
         imt = weight / ((height / 100) ** 2)
         imt = round(imt, 2)
         st.write(f'Ваш ИМТ = {imt}')
 
+        fig, plt = user.health.create_diagram(['ИМТ', 'Сердце', 'Легкие'], [25, 70, 80])
+        # st.pyplot(fig)
+        st.pyplot(plt.gcf())
+        plt.close()
+        st.write(f'Калибровочная диаграмма')
+        plt2 = h_s.HarringtonShow()
+        st.pyplot(plt2.gcf())
+
 
 elif page == "Сердце":
     st.header("""Сердце:""")
+    st.text("Для расчета индекса пульса измерьте свой пульс в покое (ударов в минуту):")
+    pulse_value = st.number_input(' введите свой пульс в поле', value=66,
+                                  placeholder="Пульс а покое")
+    gender = st.selectbox(' введите свой пол', ('man', 'women'))
+    # age = st.number_input(' введите свой возраст', value=35, placeholder="полных лет жизни")
+    if st.button('Рассчитать индекс пульса'):
+        user.gender = gender
+        # user.age = age
+        pulse = hs.Pulse()
+        pulse.health = health
+        pulse.load()
+        pulse_index = pulse.calc(pulse_value)
+        st.write(f'Ваш индекс пульса = {pulse_index}%')
+
+
 elif page == "Легкие":
     st.header("""Легкие:""")
 
@@ -59,9 +75,10 @@ elif page == "Легкие":
     #          linewidth=2, color='r')
     # st.pyplot(fig)
 
-if __name__ == "__main__":
-    ...
+    # if __name__ == "__main__":
+    #     ...
     # Set prog_name so that the Streamlit server sees the same command line
-    # string whether streamlit is called directly or via `python -m streamlit`.
-    # sys.argv = ["streamlit", "run", "main.py", ""]
-    # sys.exit(main(prog_name="streamlit"))
+    # # string whether streamlit is called directly or via `python -m streamlit`.
+    # sys.argv = ["streamlit", "run", "health_sys.py", ""]
+    # sys.argv = ["streamlit", "run", "main.py"]
+    # sys.exit(stcli.main())

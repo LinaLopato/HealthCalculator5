@@ -1,0 +1,84 @@
+@startuml
+title   HealthCalculator5
+
+
+
+skinparam class {
+BackgroundColor White
+ArrowColor Black
+BorderColor Black
+}
+skinparam object {
+BackgroundColor White
+ArrowColor Black
+BorderColor Black
+}
+scale 1.3
+skinparam DefaultTextAlignment left
+skinparam shadowing false
+skinparam packageStyle frame
+hide circle
+'hide members
+'skinparam monochrome true
+'note " lots in deal" as spread
+'package Storage {
+class Pulse{
+age
+gender
+pulse
+}
+class Resp{
+age
+time
+}
+class IMT{
+weight
+height
+}
+class Health{
+subsystems
+h_level
+add_subsys()
+diagram()
+}
+class Subsys{
+data
+load()
+}
+class User{
+pages
+input()
+output()
+}
+class Harrington1{
+y_bad
+y_good
+}
+class Harrington2{
+y_optimum
+d_optimum
+}
+class Harrington{
+y
+y_list
+h_level
+load()
+calc()
+calibrate()
+
+}
+Harrington2 "1"-"2" Harrington1
+Pulse --|> Subsys
+IMT --|> Subsys
+Resp --|> Subsys
+User -- Health
+'Subsys <|-  Resp
+Health "1"-"*"  Subsys
+Harrington2 --|> Harrington
+Harrington1 --|> Harrington
+Subsys - Harrington
+@enduml
+
+
+
+
