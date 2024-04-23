@@ -36,7 +36,6 @@ weight
 height
 }
 class Health{
-subsystems
 h_level
 add_subsys()
 diagram()
@@ -44,6 +43,7 @@ diagram()
 class Subsys{
 data
 load()
+calibrate()
 }
 class User{
 pages
@@ -60,12 +60,10 @@ d_optimum
 }
 class Harrington{
 y
-y_list
+calibrate
 h_level
 load()
 calc()
-calibrate()
-
 }
 Harrington2 "1"-"2" Harrington1
 Pulse --|> Subsys

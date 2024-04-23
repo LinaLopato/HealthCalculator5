@@ -30,10 +30,6 @@ def set_application_parameters():
 set_application_parameters()
 
 
-def hi():
-    return 'Hi'
-
-
 def str_main():
     import streamlit as st
     # from streamlit.web.cli import main
@@ -58,9 +54,9 @@ def str_main():
         # number = st.number_input("Insert a number", value=None, placeholder="Type a number...")
 
         if st.button('Рассчитать ИМТ'):
-            imt = weight / ((height / 100) ** 2)
-            imt = round(imt, 2)
-            st.write(f'Ваш ИМТ = {imt}')
+            _imt = weight / ((height / 100) ** 2)
+            _imt = round(_imt, 2)
+            st.write(f'Ваш ИМТ = {_imt}')
 
     elif page == "Сердце":
         st.header("""Сердце:""")
@@ -103,18 +99,48 @@ class User:
         ...
 
     @staticmethod
-    def output(value):
+    def output(val):
         plt.show()
-        print(f'Сердце - {value}')
+        print(f'Сердце - {val}')
 
 
 class Subsys:
     def __init__(self):
         self.harrington = Harrington()
-        self.data = None  # Название файла json с загрузочными данными
+        self.data = ''  # Название файла json с загрузочными данными
+        self.name = ''  # Название параметра
 
-    def load(self):
+    def load(self, json_name):
+        self.data = json_name
         self.harrington.load()
+
+    def calc(self):
+        ...
+
+    def calibrate(self, json_name: str):
+        """Калибровочная кривая"""
+        self.harrington.data(json_name)
+        self.harrington.load()
+        with open(json_name, 'r', encoding='utf-8') as f:
+            self.data = json.load(f)
+        imt_range = range(self.data["range"]["begin"], self.data["range"]["end"], 1)
+
+        d_range_1 = []
+        for y in imt_range:
+            d = self.harrington.calc(y)
+            d_range_1.append(d * 100)
+        plt.plot(imt_range, d_range_1, label="Калибровка", marker="o", ms=6, mfc='w')
+        # plt.grid()
+        plt.title(f'Калибровочная кривая "{self.data["name"]}"')
+        plt.ylabel(f'Желательность параметра ", %', loc='top', fontsize=12)
+        plt.xlabel(f'Значение параметра ', loc='right', fontsize=12)
+        plt.axhline(y=20, color='black', linestyle='--')
+        plt.text(0, 15, 'Плохо', fontsize=15)
+        plt.axhline(y=80, color='black', linestyle='--')
+        plt.text(0, 75, 'Хорошо', fontsize=15)
+        plt.legend(loc='best')
+        plt.show()
+        return plt
 
 
 class Health:
@@ -129,7 +155,6 @@ class Health:
         self.harrington2 = Harrington2(self)  # перевод параметра в безразмерную величину
         self.subsystems: dict[str, Subsys] = dict()
 
-    # @staticmethod
     @staticmethod
     def create_diagram(par: list, res: list):
         """Показываем диаграмму"""
@@ -181,8 +206,14 @@ class Harrington:
         self.health = _subsys  # Ссылка на родителя
         self.type = 'one'  # one, max, min
 
+    def data(self, json_name: str):
+        ...
+
     def load(self):
         ...
+
+    def calc(self, y):
+        return int(y)
 
 
 class HarringtonOne(Harrington):
@@ -212,6 +243,71 @@ class HarringtonOne(Harrington):
     def calc(self, y: float):
         """ Ахназарова с. 207   d = exp [—ехр(— у')]  у’ = bo + b1 * у' """
         self.h_level = math.exp(-math.exp(-(self.b_0 + self.b_1 * y)))  # Считаем d по Ахназаровой с.207
+        return self.h_level  # Частная функция желательности d
+
+
+class HarringtonTwoOne(Harrington):
+    """Двухсторонний критерий Харрингтона"""
+
+    def __init__(self, _subsys: Subsys = None, y_good=1, y_bad=0):
+        """Ахназарова С.Л., Кафаров В.В.; Методы оптимизации эксперимента в химической технологии;1985, с.209"""
+        super().__init__(_subsys)
+        self.health = _subsys  # Ссылка на родителя
+        self.type = 'one'  # one, max, min
+        self.min_harrington = HarringtonOne()
+        self.max_harrington = HarringtonOne()
+        self.d_good = 0.8  # Назначаем "хороший" параметр, обычно d = 0.8
+        self.d_bad = 0.2  # Назначаем "плохой" параметр, обычно d = 0.2
+        self.h_good = -math.log(math.log(1 / self.d_good))  # Good результат уb_0 + b_1*y_good = h_good (1)
+        self.h_bad = -math.log(math.log(1 / self.d_bad))  # Bad результат b_0 + b_1 * y_bad = h_bad (2)
+        self.b_0: float = 0  # Первый коэффициент в уравнении Харрингтона
+        self.b_1: float = 0  # Второй коэффициент в уравнении Харрингтона
+        self.y_good = y_good  # Назначаем "хороший" параметр Y при self.d_good
+        self.y_bad = y_bad  # Назначаем "плохой" параметр Y при self.d_bad
+        self.y_optimum = 0
+        self.opt_d = 0
+        # self.load()  # Считаем коэффициенты в уравнении Харрингтона
+        self.h_level: float = 0  # Частная функция желательности (d) Харрингтона для параметра y
+
+    def data(self, json_name):
+        with open(json_name, 'r') as f:
+            data = json.load(f)
+        self.min_harrington.y_good = data["min"]["good"]
+        self.min_harrington.y_bad = data["min"]["bad"]
+        self.max_harrington.y_good = data["max"]["good"]
+        self.max_harrington.y_bad = data["max"]["bad"]
+        self.y_optimum = data["optimum"]
+        self.opt_d = data["opt_d"]
+        # imt_range = range(data["range"]["begin"], data["range"]["end"], 1)
+        # d_range_1 = []
+        # for y in imt_range:
+        #     if y > data["optimum"]:
+        #         d = self.max_harrington.calc(y)
+        #         self.type = 'max'
+        #     elif y < data["optimum"]:
+        #         d = self.min_harrington.calc(y)
+        #         self.type = 'min'
+        #     else:
+        #         d = data["opt_d"]
+        #         self.type = 'one'
+        #     d_range_1.append(d)
+        # return d_range_1
+
+    def load(self):
+        """ Ахназарова с. 207   d = exp [—ехр(— у')]  у’ = bo + b1 * у' """
+        self.min_harrington.load()
+        self.max_harrington.load()
+
+    def calc(self, y: float):
+        if y > self.y_optimum:
+            self.h_level = self.max_harrington.calc(y)
+            self.type = 'max'
+        elif y < self.y_optimum:
+            self.h_level = self.min_harrington.calc(y)
+            self.type = 'min'
+        else:
+            self.h_level = self.opt_d
+            self.type = 'one'
         return self.h_level  # Частная функция желательности d
 
 
@@ -360,14 +456,46 @@ class IMT(Subsys):
     def __init__(self, _health: Health = None):
         super().__init__()
         self.health = _health  # Ссылка на родителя
+        self.harrington = HarringtonTwoOne()
+        self.current_value = None  # Текущее показание
+        self.h_level = None  # Показатель Харрингтона
+
+    def load(self, json_name):
+        self.harrington.data(json_name)
+        self.harrington.load()
+
+    def calc(self, weight: float = 80, height: int = 170):
+        self.current_value = weight / ((height / 100) ** 2)
+        self.h_level = self.harrington.calc(self.current_value)
+        return int(self.h_level * 100), round(self.current_value)
 
 
 class Resp(Subsys):
     """Управление объектами """
 
-    def __init__(self, contr: Health = None):
+    def __init__(self, _health: Health = None):
         super().__init__()
-        self.controller = contr  # Ссылка на родителя
+        self.name = 'Задержка дыхания'
+        self.health = _health  # Ссылка на родителя
+        self.harrington = HarringtonOne()
+        self.current_value = None  # Текущее показание
+        self.h_level = None  # Показатель Харрингтона
+
+    def load(self, json_name):
+        with open(json_name, 'r') as f:
+            data = json.load(f)
+        if self.health.user.gender == 'man':
+            self.harrington.y_good = data["man"]["good"]
+            self.harrington.y_bad = data["man"]["bad"]
+        else:
+            self.harrington.y_good = data["women"]["good"]
+            self.harrington.y_bad = data["women"]["bad"]
+        self.harrington.load()
+
+    def calc(self, val: int = 30):
+        self.current_value = val
+        self.h_level = self.harrington.calc(self.current_value)
+        return int(self.h_level * 100), self.current_value
 
 
 class Heart(Subsys):
@@ -383,14 +511,15 @@ class Heart(Subsys):
         xls_file = pd.ExcelFile(r' heart.xlsx')  # Импорт excel файла
         self.df = xls_file.parse('Лист1')  # Создание DataFrame
 
-    def pulse(self, gender: str = 'women', age: int = 26, pulse: int = 66):
+    def calc(self, gender: str = 'women', age: int = 26, pulse: int = 66):
         df = self.df
         self.good_pulse = int(df.loc[(df['gender'] == gender) & (df['age'] >= age)]['good_pulse'].iloc[0])
         # Фильтруем по полу, возрасту и выводим первый [0] элемент серии значений как целое число
         self.bad_pulse = int(df.loc[(df['gender'] == gender) & (df['age'] >= age)]['bad_pulse'].iloc[0])
         self.current_pulse = pulse
         self.d_pulse = self.health.harrington.calc(self.good_pulse, self.bad_pulse, self.current_pulse)
-        print(f' gender\t{gender},\tage\t{age},\tpulse\t{pulse},\td_pulse\t{int(self.d_pulse * 100)}%')
+        return self.d_pulse, pulse
+        # print(f' gender\t{gender},\tage\t{age},\tpulse\t{pulse},\td_pulse\t{int(self.d_pulse * 100)}%')
 
 
 class Pulse(Subsys):
@@ -400,14 +529,11 @@ class Pulse(Subsys):
         super().__init__()
         self.health = _health  # Ссылка на родителя
         self.harrington = HarringtonOne()
-        self.good_pulse = None  # Хороший пульс
-        self.bad_pulse = None  # Плохой пульс
-        self.current_pulse = None  # Текущий пульс
-        self.d_pulse = None  # Показатель Харрингтона
-        # self.load()
+        self.current_value = None  # Текущее показание
+        self.h_level = None  # Показатель Харрингтона
 
-    def load(self):
-        with open('pulse.json', 'r') as f:
+    def load(self, json_name):
+        with open(json_name, 'r') as f:
             data = json.load(f)
         if self.health.user.gender == 'man':
             self.harrington.y_good = data["man"]["good"]
@@ -417,28 +543,23 @@ class Pulse(Subsys):
             self.harrington.y_bad = data["women"]["bad"]
         self.harrington.load()
 
-    def calc(self, pulse: int = 66):
-        self.current_pulse = pulse
-        self.d_pulse = self.harrington.calc(self.current_pulse)
-        return int(self.d_pulse * 100)
-        # print(f'd_pulse\t{int(self.d_pulse * 100)}%')
+    def calc(self, val: int = 66) -> int:
+        self.current_value = val
+        self.h_level = self.harrington.calc(self.current_value)
+        return int(self.h_level * 100)
 
 
-def HarringtonShow():
-    """Просмотр """
-    with open('imt.json', 'r') as f:
+def Calibrate(json_name: str):
+    """Калибровочная кривая"""
+    har_2 = HarringtonTwoOne()
+    har_2.data(json_name)
+    har_2.load()
+    with open(json_name, 'r') as f:
         data = json.load(f)
-
     imt_range = range(data["range"]["begin"], data["range"]["end"], 1)
-    har_1 = Harrington1()
     d_range_1 = []
     for y in imt_range:
-        if y > data["optimum"]:
-            d = har_1.calc(data["max"]["good"], data["max"]["bad"], y)
-        elif y < data["optimum"]:
-            d = har_1.calc(data["min"]["good"], data["min"]["bad"], y)
-        else:
-            d = data["opt_d"]
+        d = har_2.calc(y)
         d_range_1.append(d * 100)
 
     # imt_range = range(10, 65, 1)
@@ -460,14 +581,14 @@ def HarringtonShow():
     #     d_range_1.append(d)
 
     # print(d_range)
-    plt.plot(imt_range, d_range_1, label="two one side", marker="o", ms=6, mfc='w')
+    plt.plot(imt_range, d_range_1, label="Калибровка", marker="o", ms=6, mfc='w')
     # plt.grid()
-    plt.title(f'Harrington1 and Harrington2')
-    plt.ylabel('health, %', loc='top', fontsize=12)  # fontweight="bold"
-    plt.xlabel('imt', loc='right', fontsize=12)
+    plt.title(f'Калибровочная кривая')
+    plt.ylabel('Желательность, %', loc='top', fontsize=12)  # fontweight="bold"
+    plt.xlabel('Значение', loc='right', fontsize=12)
     plt.legend(loc='best')
+    plt.show()
     return plt
-    # plt.show()
 
     # har_2 = Harrington2()
     # d_range_2 = []
@@ -484,17 +605,43 @@ def HarringtonShow():
 
 if __name__ == "__main__":
     set_application_parameters()
+    user = User()
+    user.gender = 'man'
+    user.age = 33
+    user.health = Health()
+    # user.health.subsystems['Resp'] = resp
+    # imt = IMT()
+    # imt.load('imt.json')
+    # h_level, value = imt.calc(weight=30, height=170)
+    # print(f'h_level {h_level}, value {value}')
+    # imt.calibrate('imt.json')
+    #
+    # resp = Resp()
+    # resp.health = Health()
+    # resp.health.user = User()
+    # resp.health.user.gender = 'man'
+    # resp.load('resp.json')
+    # h_level, value = resp.calc(val=65)
+    # # print(f'h_level {h_level}, value {value}')
+    # resp.calibrate('resp.json')
+
+    heart = Heart()
+    heart.load('pulse.json')
+    h_level, value = heart.calc(gender='women', age=26, pulse=66)
+    print(f'h_level {h_level}, value {value}')
+    heart.calibrate('heart.json')
+
     # user = User()
     # fig2 = user.health.create_diagram(['ИМТ', 'Сердце', 'Легкие'], [40, 70, 80])
     # plt.show()
 
-    user_1 = User()  # Создаем объект Пользователь
-    user_1.health.pulse.calc(71)
-    objects = user_1.health.subsystems
-    objects[user_1.health.resp.__class__.__name__] = user_1.health.resp
-    objects[user_1.health.pulse.__class__.__name__] = user_1.health.pulse
-    print(list(objects.keys()))  # ['Pulse', 'Health']
-    print(list(objects.values()))  # [<__main__.Pulse object >, <__main__.Health object>]
+    # user_1 = User()  # Создаем объект Пользователь
+    # user_1.health.pulse.calc(71)
+    # objects = user_1.health.subsystems
+    # objects[user_1.health.resp.__class__.__name__] = user_1.health.resp
+    # objects[user_1.health.pulse.__class__.__name__] = user_1.health.pulse
+    # print(list(objects.keys()))  # ['Pulse', 'Health']
+    # print(list(objects.values()))  # [<__main__.Pulse object >, <__main__.Health object>]
 
     # pulse2 = Pulse()
     # pulse2.calc(69)
