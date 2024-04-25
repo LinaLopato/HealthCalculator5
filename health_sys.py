@@ -88,6 +88,9 @@ def str_main():
         # st.pyplot(fig)
 
 
+view_console = True
+
+
 class User:
     """Вводи и вывод данных пользователем """
 
@@ -122,7 +125,7 @@ class Subsys:
         ...
 
     def calibrate(self, json_name: str, x: int, z: int) -> plt:
-        """Калибровочная кривая"""
+        """Калибровочная диаграмма"""
         self.harrington.data(json_name)
         self.harrington.load()
         with open(json_name, 'r', encoding='utf-8') as f:
@@ -135,7 +138,7 @@ class Subsys:
             d_range_1.append(d * 100)
         plt.plot(imt_range, d_range_1, label="Калибровка", marker="o", ms=6, mfc='w')
         # plt.grid()
-        plt.title(f'Калибровочная кривая "{self.data["name"]}"')
+        plt.title(f'Калибровочная диаграмма "{self.data["name"]}"')
         plt.ylabel(f'Желательность параметра ", %', loc='top', fontsize=12)
         plt.xlabel(f'Значение параметра ', loc='right', fontsize=12)
         plt.axhline(y=20, color='black', linestyle='--')
@@ -144,8 +147,9 @@ class Subsys:
         plt.text(self.data["range"]["begin"], 75, 'Хорошо', fontsize=15)
         plt.legend(loc='best')
         plt.plot(x, z, 'ro', markersize=12, )
-        plt.text(x+2, z-2, 'Ваше\nзначение', fontsize=15)
-        plt.show()  # Показываем график в приложении
+        plt.text(x + 4, z - 2, '  Ваше\nзначение', fontsize=15)
+        if view_console:
+            plt.show()  # Показываем график в приложении
         return plt
 
 
@@ -162,10 +166,11 @@ class Health:
         self.subsystems: dict[str, Subsys] = dict()
 
     def add_subsystem(self, subsystem: Subsys):
-        json_file = subsystem.__class__.__name__.lower() + '.json'
-        subsystem.health = self
-        subsystem.load(json_file)
-        self.subsystems[subsystem.__class__.__name__.lower()] = subsystem
+        # json_file = subsystem.__class__.__name__.lower() + '.json'
+        # subsystem.health = self
+        # subsystem.load(json_file)
+        # self.subsystems[subsystem.__class__.__name__.lower()] = subsystem
+        self.subsystems[subsystem.name] = subsystem
 
     @staticmethod
     def create_diagram(params: list, results: list):
@@ -196,14 +201,15 @@ class Health:
 
         plt.subplot(1, 2, 2)
         plt.text(0.05, 0.5, text_block, fontsize=14)  # Выводим сводный показатель и отдельные показатели
-        plt.show()  # Показываем график в приложении
-        return fig, plt
+        if view_console:
+            plt.show()  # Показываем график в приложении
+        return plt
 
     @staticmethod
     def text_block(par, res) -> str:
         """Создаем текстовой блок в диаграмме"""
         health = int(round(math.prod(res) ** (1 / len(res)), 0))  # Обобщенный показатель Харрингтона
-        header = f"На {datetime.today().strftime('%Y-%m-%d')}\nвсего здоровья {health}% \n "  # Заголовок
+        header = f"На {datetime.today().strftime('%Y-%m-%d')}\nобщее здоровье {health}% \n "  # Заголовок
         parameters = ''  # Показатели здоровья
         for i in range(len(res) - 1):
             parameters += f'    {i + 1}.  {par[i]} {res[i]}%\n'  # Собираем все показатели в строку
@@ -470,6 +476,7 @@ class IMT(Subsys):
         super().__init__()
         self.health = _health  # Ссылка на родителя
         self.name = 'ИМТ'
+        self.data = 'imt.json'
         self.harrington = HarringtonTwoOne()
         self.current_value = None  # Текущее показание
         self.h_level = None  # Показатель Харрингтона
@@ -490,6 +497,7 @@ class Resp(Subsys):
     def __init__(self, _health: Health = None):
         super().__init__()
         self.name = 'Дыхание'
+        self.data = 'resp.json'
         self.health = _health  # Ссылка на родителя
         self.harrington = HarringtonOne()
         self.current_value = 33  # Текущее показание
@@ -518,6 +526,7 @@ class Heart(Subsys):
     def __init__(self, _health: Health = None):
         super().__init__()
         self.name = 'Пульс'
+        self.data = 'heart.json'
         self.health = _health  # Ссылка на родителя
         self.harrington = HarringtonOne()
         self.current_value = 66  # Текущее показание
@@ -578,7 +587,7 @@ class Pulse(Subsys):
 
 
 def Calibrate(json_name: str):
-    """Калибровочная кривая"""
+    """Калибровочная диаграмма"""
     har_2 = HarringtonTwoOne()
     har_2.data(json_name)
     har_2.load()
@@ -591,7 +600,7 @@ def Calibrate(json_name: str):
         d_range_1.append(d * 100)
     plt.plot(imt_range, d_range_1, label="Калибровка", marker="o", ms=6, mfc='w')
     # plt.grid()
-    plt.title(f'Калибровочная кривая')
+    plt.title(f'Калибровочная диаграмма')
     plt.ylabel('Желательность, %', loc='top', fontsize=12)  # fontweight="bold"
     plt.xlabel('Значение', loc='right', fontsize=12)
     plt.legend(loc='best')
@@ -602,7 +611,7 @@ def Calibrate(json_name: str):
 if __name__ == "__main__":
     set_application_parameters()
     user = User()
-    user.gender = 'man'
+    # user.gender = 'women'
     user.health = Health(user)
 
     imt = IMT()
@@ -628,8 +637,8 @@ if __name__ == "__main__":
 
     user.health.create_diagram(keys, values)
     for subsys in list(user.health.subsystems.values()):
-        json_file_name = subsys.__class__.__name__.lower() + '.json'
-        subsys.calibrate(json_file_name, subsys.current_value, subsys.h_level*100)
+        # json_file_name = subsys.__class__.__name__.lower() + '.json'
+        subsys.calibrate(subsys.data, subsys.current_value, subsys.h_level * 100)
 
     print(keys)
     print(values)

@@ -2,34 +2,78 @@ import streamlit as st
 
 import health_sys as hs
 
-h_s = hs
-user = h_s.User()
-health = hs.Health()
-health.user = user
-gender_index = 0
-if health.user.gender == "women":
+hs.view_console = False
+main_user = hs.User()
+main_user.health = hs.Health(main_user)
+
+gender_index = 0  # women
+if main_user.gender == "women":
     gender_index = 0
 else:
     gender_index = 1
+# health = hs.Health()
+# health.user = user
+# gender_index = 0  # women
+# if user.gender == "women":
+#     gender_index = 0
+# else:
+#     gender_index = 1
+
+
+# def set_gender():
+#     """Фиксация индекса пола """
+#     global gender_index
+#     if gender == 'women':
+#         gender_index = 0
+#     else:
+#         gender_index = 1
+#     user.gender = gender
+
+if "user" not in st.session_state:
+    st.session_state.user = main_user
+    # user = st.session_state
+    st.session_state.disabled = False
+
 st.title("Калькулятор здоровья")
 with st.sidebar:
-    page = st.radio(
-        "Подсистема организма",
-        ("Жировой запас", "Сердце", "Легкие")
-    )
+    page = st.radio("Подсистема организма", ("Жировой запас", "Сердце", "Легкие"))
+
+hs.view_console = False
+
+
+def set_gender():
+    """Фиксация индекса пола """
+    global gender_index
+    if gender == 'women':
+        gender_index = 0
+    else:
+        gender_index = 1
+    st.session_state.user.gender = gender
+
+
+def show():
+    st.write(f'Функция желательности {subs.name} = {h_level}%, \t   {subs.name} = {value}')
+    values = [int(syb.h_level * 100) for syb in st.session_state.user.health.subsystems.values()]
+    keys = [syb.name for syb in st.session_state.user.health.subsystems.values()]
+    plt = st.session_state.user.health.create_diagram(keys, values)
+    st.pyplot(plt.gcf())
+    plt.close()
+    st.write(f'Калибровочная диаграмма')
+    plt2 = subs.calibrate(subs.data, subs.current_value, subs.h_level * 100)
+    st.pyplot(plt2.gcf())
+
+
 if page == "Жировой запас":
     st.header("""Индекс массы тела (ИМТ)""")
     st.text("Для расчета индекса массы тела введите свой:")
-    weight = st.number_input(' вес в килограммах', value=72, placeholder="Вес в килограммах")
+    weight = st.number_input(' вес в килограммах', value=90, placeholder="Вес в кг")
     height = st.number_input(' рост в сантиметрах', value=170, placeholder="Рост в см")
 
     if st.button('Рассчитать функцию желательности '):
-        imt = hs.IMT()
-        imt.health = health
-        imt.load('imt.json')
-        h_level, value = imt.calc(weight=weight, height=height)
-        st.write(f'Функция желательности ИМТ = {h_level}% ')
-        st.write(f' ИМТ = {value}')
+        subs = hs.IMT()
+        st.session_state.user.health.add_subsystem(subs)
+        h_level, value = subs.calc(weight=weight, height=height)
+        show()
 
         # fig, plt = user.health.create_diagram(['ИМТ', 'Сердце', 'Легкие'], [25, 70, 80])
         # st.pyplot(plt.gcf())
@@ -44,17 +88,27 @@ elif page == "Сердце":
     input_value = st.number_input(' введите свой пульс в поле', value=66,
                                   placeholder="Пульс а покое")
     gender = st.selectbox(' введите свой пол', ('women', 'man'), index=gender_index)
-    if gender == 'women':
-        gender_index = 0
-    else:
-        gender_index = 1
-    user.gender = gender
+    set_gender()
     if st.button('Рассчитать функцию желательности'):
-        pulse = hs.Pulse()
-        pulse.health = health
-        pulse.load('heart.json')
-        h_level = pulse.calc(input_value)
-        st.write(f'Функция желательности пульса = {h_level}%')
+        heart = hs.Heart()
+        heart.health = st.session_state.user .health
+        heart.load('heart.json')
+        heart.calc(input_value)
+        st.session_state.user .health.add_subsystem(heart)
+        values = [int(syb.h_level * 100) for syb in st.session_state.user.health.subsystems.values()]
+        keys = [syb.name for syb in st.session_state.user.health.subsystems.values()]
+        plt = st.session_state.user.health.create_diagram(keys, values)
+        st.pyplot(plt.gcf())
+        plt.close()
+        st.write(f'Калибровочная диаграмма')
+        plt2 = heart.calibrate(heart.data, heart.current_value, heart.h_level * 100)
+        st.pyplot(plt2.gcf())
+
+        # pulse = hs.Pulse()
+        # pulse.health = user.health
+        # pulse.load('heart.json')
+        # h_level = pulse.calc(input_value)
+        # st.write(f'Функция желательности пульса = {h_level}%')
 
 
 elif page == "Легкие":
@@ -63,18 +117,19 @@ elif page == "Легкие":
     input_value = st.number_input(' введите задержку дыхания в секундах в поле', value=55,
                                   placeholder="Задержка дыхания в секундах")
     gender = st.selectbox(' введите свой пол', ('women', 'man'), index=gender_index)
-    if gender == 'women':
-        gender_index = 0
-    else:
-        gender_index = 1
-    user.gender = gender
+    set_gender()
     if st.button('Рассчитать функцию желательности'):
-        # user.gender = gender
         resp = hs.Resp()
-        resp.health = health
+        resp.health = st.session_state.user.health
         resp.load('resp.json')
-        h_level = resp.calc(input_value)
-        st.write(f'Функция желательности легких = {h_level}%')
+        resp.calc(40)
+        st.session_state.user.health.add_subsystem(resp)
+        values = [int(syb.h_level * 100) for syb in st.session_state.user.health.subsystems.values()]
+        keys = [syb.name for syb in st.session_state.user.health.subsystems.values()]
+        plt = st.session_state.user.health.create_diagram(keys, values)
+        st.pyplot(plt.gcf())
+        # h_level = resp.calc(input_value)
+        # st.write(f'Функция желательности легких = {h_level}%')
 
     # st.latex(r'''
     #             F(x) = exp(-(\gamma x)^{-1/\gamma}1\{x>0\})
