@@ -6,6 +6,11 @@ h_s = hs
 user = h_s.User()
 health = hs.Health()
 health.user = user
+gender_index = 0
+if health.user.gender == "women":
+    gender_index = 0
+else:
+    gender_index = 1
 st.title("Калькулятор здоровья")
 with st.sidebar:
     page = st.radio(
@@ -33,22 +38,21 @@ if page == "Жировой запас":
         # plt2 = h_s.HarringtonShow()
         # st.pyplot(plt2.gcf())
 
-        # st.pyplot(fig)
-
-
 elif page == "Сердце":
     st.header("""Сердце:""")
     st.text("Для расчета индекса пульса измерьте свой пульс в покое (ударов в минуту):")
     input_value = st.number_input(' введите свой пульс в поле', value=66,
                                   placeholder="Пульс а покое")
-    gender = st.selectbox(' введите свой пол', ('man', 'women'))
-    # age = st.number_input(' введите свой возраст', value=35, placeholder="полных лет жизни")
+    gender = st.selectbox(' введите свой пол', ('women', 'man'), index=gender_index)
+    if gender == 'women':
+        gender_index = 0
+    else:
+        gender_index = 1
+    user.gender = gender
     if st.button('Рассчитать функцию желательности'):
-        user.gender = gender
-        # user.age = age
         pulse = hs.Pulse()
         pulse.health = health
-        pulse.load('pulse.json')
+        pulse.load('heart.json')
         h_level = pulse.calc(input_value)
         st.write(f'Функция желательности пульса = {h_level}%')
 
@@ -58,10 +62,14 @@ elif page == "Легкие":
     st.text("Для расчета индекса легких измерьте задержку дыхания в секундах:")
     input_value = st.number_input(' введите задержку дыхания в секундах в поле', value=55,
                                   placeholder="Задержка дыхания в секундах")
-    gender = st.selectbox(' введите свой пол', ('man', 'women'))
-    # age = st.number_input(' введите свой возраст', value=35, placeholder="полных лет жизни")
+    gender = st.selectbox(' введите свой пол', ('women', 'man'), index=gender_index)
+    if gender == 'women':
+        gender_index = 0
+    else:
+        gender_index = 1
+    user.gender = gender
     if st.button('Рассчитать функцию желательности'):
-        user.gender = gender
+        # user.gender = gender
         resp = hs.Resp()
         resp.health = health
         resp.load('resp.json')
@@ -90,11 +98,3 @@ elif page == "Легкие":
     #          np.exp(- (gamma * bins) ** (-1 / gamma)) * (1 / gamma) * (gamma * bins) ** (-1 / gamma - 1) * gamma,
     #          linewidth=2, color='r')
     # st.pyplot(fig)
-
-    # if __name__ == "__main__":
-    #     ...
-    # Set prog_name so that the Streamlit server sees the same command line
-    # # string whether streamlit is called directly or via `python -m streamlit`.
-    # sys.argv = ["streamlit", "run", "health_sys.py", ""]
-    # sys.argv = ["streamlit", "run", "main.py"]
-    # sys.exit(stcli.main())

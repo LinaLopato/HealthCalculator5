@@ -23,12 +23,11 @@ hide circle
 'note " lots in deal" as spread
 'package Storage {
 class Pulse{
-age
 gender
 pulse
 }
 class Resp{
-age
+gender
 time
 }
 class IMT{
@@ -36,7 +35,7 @@ weight
 height
 }
 class Health{
-h_level
+sum_h_level
 add_subsys()
 diagram()
 }
@@ -59,8 +58,6 @@ y_optimum
 d_optimum
 }
 class Harrington{
-y
-calibrate
 h_level
 load()
 calc()

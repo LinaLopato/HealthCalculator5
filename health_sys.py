@@ -13,6 +13,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from datetime import datetime
 
 
 def set_application_parameters():
@@ -91,7 +92,7 @@ class User:
     """Вводи и вывод данных пользователем """
 
     def __init__(self):
-        self.age = 33
+        self.age = 30
         self.gender = 'women'
         self.health: Health = Health(self)  # Система здоровья
 
@@ -107,8 +108,11 @@ class User:
 class Subsys:
     def __init__(self):
         self.harrington = Harrington()
+        self.health = None  # Ссылка на родителя
         self.data = ''  # Название файла json с загрузочными данными
         self.name = ''  # Название параметра
+        self.current_value = None  # Текущее показание
+        self.h_level = None  # Показатель Харрингтона
 
     def load(self, json_name):
         self.data = json_name
@@ -117,7 +121,7 @@ class Subsys:
     def calc(self):
         ...
 
-    def calibrate(self, json_name: str):
+    def calibrate(self, json_name: str, x: int, z: int) -> plt:
         """Калибровочная кривая"""
         self.harrington.data(json_name)
         self.harrington.load()
@@ -135,11 +139,13 @@ class Subsys:
         plt.ylabel(f'Желательность параметра ", %', loc='top', fontsize=12)
         plt.xlabel(f'Значение параметра ', loc='right', fontsize=12)
         plt.axhline(y=20, color='black', linestyle='--')
-        plt.text(0, 15, 'Плохо', fontsize=15)
+        plt.text(self.data["range"]["begin"], 15, 'Плохо', fontsize=15)
         plt.axhline(y=80, color='black', linestyle='--')
-        plt.text(0, 75, 'Хорошо', fontsize=15)
+        plt.text(self.data["range"]["begin"], 75, 'Хорошо', fontsize=15)
         plt.legend(loc='best')
-        plt.show()
+        plt.plot(x, z, 'ro', markersize=12, )
+        plt.text(x+2, z-2, 'Ваше\nзначение', fontsize=15)
+        plt.show()  # Показываем график в приложении
         return plt
 
 
@@ -148,18 +154,24 @@ class Health:
 
     def __init__(self, _user: User = None):
         self.user = _user  # Ссылка на родителя
-        self.pulse = Pulse(self)  # ресурсы сердечно-сосудистой системы
-        self.imt = IMT(self)  # индекс массы тела
-        self.resp = Resp(self)  # ресурсы легких
+        # self.pulse = Pulse(self)  # ресурсы сердечно-сосудистой системы
+        # self.imt = IMT(self)  # индекс массы тела
+        # self.resp = Resp(self)  # ресурсы легких
         self.harrington = Harrington1(self)  # Односторонний перевод параметра в безразмерную величину
         self.harrington2 = Harrington2(self)  # перевод параметра в безразмерную величину
         self.subsystems: dict[str, Subsys] = dict()
 
+    def add_subsystem(self, subsystem: Subsys):
+        json_file = subsystem.__class__.__name__.lower() + '.json'
+        subsystem.health = self
+        subsystem.load(json_file)
+        self.subsystems[subsystem.__class__.__name__.lower()] = subsystem
+
     @staticmethod
-    def create_diagram(par: list, res: list):
+    def create_diagram(params: list, results: list):
         """Показываем диаграмму"""
-        params = par
-        results = res
+        # params = names  # Названия параметров
+        # results = results  # Значения параметров
 
         theta = np.linspace(start=0, stop=2 * np.pi, num=len(results), endpoint=False)
         theta = np.concatenate((theta, [theta[0]]))
@@ -184,13 +196,14 @@ class Health:
 
         plt.subplot(1, 2, 2)
         plt.text(0.05, 0.5, text_block, fontsize=14)  # Выводим сводный показатель и отдельные показатели
-        # plt.show()
+        plt.show()  # Показываем график в приложении
         return fig, plt
 
     @staticmethod
     def text_block(par, res) -> str:
+        """Создаем текстовой блок в диаграмме"""
         health = int(round(math.prod(res) ** (1 / len(res)), 0))  # Обобщенный показатель Харрингтона
-        header = f"Всего здоровье {health}%\n"  # Заголовок - обобщенный показатель Харрингтона
+        header = f"На {datetime.today().strftime('%Y-%m-%d')}\nвсего здоровья {health}% \n "  # Заголовок
         parameters = ''  # Показатели здоровья
         for i in range(len(res) - 1):
             parameters += f'    {i + 1}.  {par[i]} {res[i]}%\n'  # Собираем все показатели в строку
@@ -456,6 +469,7 @@ class IMT(Subsys):
     def __init__(self, _health: Health = None):
         super().__init__()
         self.health = _health  # Ссылка на родителя
+        self.name = 'ИМТ'
         self.harrington = HarringtonTwoOne()
         self.current_value = None  # Текущее показание
         self.h_level = None  # Показатель Харрингтона
@@ -475,10 +489,10 @@ class Resp(Subsys):
 
     def __init__(self, _health: Health = None):
         super().__init__()
-        self.name = 'Задержка дыхания'
+        self.name = 'Дыхание'
         self.health = _health  # Ссылка на родителя
         self.harrington = HarringtonOne()
-        self.current_value = None  # Текущее показание
+        self.current_value = 33  # Текущее показание
         self.h_level = None  # Показатель Харрингтона
 
     def load(self, json_name):
@@ -503,23 +517,37 @@ class Heart(Subsys):
 
     def __init__(self, _health: Health = None):
         super().__init__()
+        self.name = 'Пульс'
         self.health = _health  # Ссылка на родителя
-        self.good_pulse = None  # Хороший пульс
-        self.bad_pulse = None  # Плохой пульс
-        self.current_pulse = None  # Текущий пульс
-        self.d_pulse = None  # Показатель Харрингтона
-        xls_file = pd.ExcelFile(r' heart.xlsx')  # Импорт excel файла
-        self.df = xls_file.parse('Лист1')  # Создание DataFrame
+        self.harrington = HarringtonOne()
+        self.current_value = 66  # Текущее показание
+        self.h_level = None  # Показатель Харрингтона
 
-    def calc(self, gender: str = 'women', age: int = 26, pulse: int = 66):
-        df = self.df
-        self.good_pulse = int(df.loc[(df['gender'] == gender) & (df['age'] >= age)]['good_pulse'].iloc[0])
-        # Фильтруем по полу, возрасту и выводим первый [0] элемент серии значений как целое число
-        self.bad_pulse = int(df.loc[(df['gender'] == gender) & (df['age'] >= age)]['bad_pulse'].iloc[0])
-        self.current_pulse = pulse
-        self.d_pulse = self.health.harrington.calc(self.good_pulse, self.bad_pulse, self.current_pulse)
-        return self.d_pulse, pulse
-        # print(f' gender\t{gender},\tage\t{age},\tpulse\t{pulse},\td_pulse\t{int(self.d_pulse * 100)}%')
+    def load(self, json_name):
+        with open(json_name, 'r') as f:
+            data = json.load(f)
+        if self.health.user.gender == 'man':
+            self.harrington.y_good = data["man"]["good"]
+            self.harrington.y_bad = data["man"]["bad"]
+        else:
+            self.harrington.y_good = data["women"]["good"]
+            self.harrington.y_bad = data["women"]["bad"]
+        self.harrington.load()
+
+    def calc(self, val: int = 66):
+        self.current_value = val
+        self.h_level = self.harrington.calc(self.current_value)
+        return int(self.h_level * 100), self.current_value
+
+    # def calc(self, gender: str = 'women', age: int = 26, pulse: int = 66):
+    #     df = self.df
+    #     self.good_pulse = int(df.loc[(df['gender'] == gender) & (df['age'] >= age)]['good_pulse'].iloc[0])
+    #     # Фильтруем по полу, возрасту и выводим первый [0] элемент серии значений как целое число
+    #     self.bad_pulse = int(df.loc[(df['gender'] == gender) & (df['age'] >= age)]['bad_pulse'].iloc[0])
+    #     self.current_pulse = pulse
+    #     self.h_level = self.health.harrington.calc(self.good_pulse, self.bad_pulse, self.current_pulse)
+    #     return self.h_level, pulse
+    # print(f' gender\t{gender},\tage\t{age},\tpulse\t{pulse},\td_pulse\t{int(self.d_pulse * 100)}%')
 
 
 class Pulse(Subsys):
@@ -561,26 +589,6 @@ def Calibrate(json_name: str):
     for y in imt_range:
         d = har_2.calc(y)
         d_range_1.append(d * 100)
-
-    # imt_range = range(10, 65, 1)
-    # # imt_range = range(5, 81, 1)
-    # har_1 = Harrington1()
-    # y_bad_min = 10
-    # y_good_min = 15
-    # y_bad_max = 64
-    # y_good_max = 45
-    # y_optimum = 21
-    # d_range_1 = []
-    # for y in imt_range:
-    #     if y > y_optimum:
-    #         d = har_1.calc(y_good_max, y_bad_max, y)
-    #     elif y < y_optimum:
-    #         d = har_1.calc(y_good_min, y_bad_min, y)
-    #     else:
-    #         d = 0.98
-    #     d_range_1.append(d)
-
-    # print(d_range)
     plt.plot(imt_range, d_range_1, label="Калибровка", marker="o", ms=6, mfc='w')
     # plt.grid()
     plt.title(f'Калибровочная кривая')
@@ -590,25 +598,42 @@ def Calibrate(json_name: str):
     plt.show()
     return plt
 
-    # har_2 = Harrington2()
-    # d_range_2 = []
-    # for y in imt_range:
-    #     d_range_2.append(har_2.calc2(y))
-    # plt.plot(imt_range, d_range_2, label="two side", marker="o", ms=6, mfc='w')
-    # # plt.grid()
-    # plt.title(f'Harrington1 and Harrington2')
-    # plt.ylabel('health part', loc='top', fontsize=12)  # fontweight="bold"
-    # plt.xlabel('imt', loc='right', fontsize=12)
-    # plt.legend(loc='best')
-    # plt.show()
-
 
 if __name__ == "__main__":
     set_application_parameters()
     user = User()
     user.gender = 'man'
-    user.age = 33
-    user.health = Health()
+    user.health = Health(user)
+
+    imt = IMT()
+    imt.health = user.health
+    imt.load('imt.json')
+    imt.calc(90, 170)
+    user.health.add_subsystem(imt)
+
+    resp = Resp()
+    resp.health = user.health
+    resp.load('resp.json')
+    resp.calc(40)
+    user.health.add_subsystem(resp)
+
+    heart = Heart()
+    heart.health = user.health
+    heart.load('heart.json')
+    heart.calc(60)
+    user.health.add_subsystem(heart)
+
+    values = [int(syb.h_level * 100) for syb in user.health.subsystems.values()]
+    keys = [syb.name for syb in user.health.subsystems.values()]
+
+    user.health.create_diagram(keys, values)
+    for subsys in list(user.health.subsystems.values()):
+        json_file_name = subsys.__class__.__name__.lower() + '.json'
+        subsys.calibrate(json_file_name, subsys.current_value, subsys.h_level*100)
+
+    print(keys)
+    print(values)
+
     # user.health.subsystems['Resp'] = resp
     # imt = IMT()
     # imt.load('imt.json')
@@ -625,11 +650,11 @@ if __name__ == "__main__":
     # # print(f'h_level {h_level}, value {value}')
     # resp.calibrate('resp.json')
 
-    heart = Heart()
-    heart.load('pulse.json')
-    h_level, value = heart.calc(gender='women', age=26, pulse=66)
-    print(f'h_level {h_level}, value {value}')
-    heart.calibrate('heart.json')
+    # heart = Heart()
+    # heart.load('heart.json')
+    # h_level, value = heart.calc(gender='women', age=26, pulse=66)
+    # print(f'h_level {h_level}, value {value}')
+    # heart.calibrate('heart.json')
 
     # user = User()
     # fig2 = user.health.create_diagram(['ИМТ', 'Сердце', 'Легкие'], [40, 70, 80])
