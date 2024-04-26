@@ -2,7 +2,7 @@ import streamlit as st
 
 import health_sys as hs
 
-hs.view_console = False
+hs.view_console = False  # Не выводить графику в консоль
 main_user = hs.User()
 main_user.health = hs.Health(main_user)
 
@@ -11,23 +11,6 @@ if main_user.gender == "women":
     gender_index = 0
 else:
     gender_index = 1
-# health = hs.Health()
-# health.user = user
-# gender_index = 0  # women
-# if user.gender == "women":
-#     gender_index = 0
-# else:
-#     gender_index = 1
-
-
-# def set_gender():
-#     """Фиксация индекса пола """
-#     global gender_index
-#     if gender == 'women':
-#         gender_index = 0
-#     else:
-#         gender_index = 1
-#     user.gender = gender
 
 if "user" not in st.session_state:
     st.session_state.user = main_user
@@ -51,6 +34,7 @@ def set_gender():
 
 
 def show(subs):
+    """Показываем графику в браузере"""
     st.session_state.user.health.add_subsystem(subs)
     values = [int(syb.h_level * 100) for syb in st.session_state.user.health.subsystems.values()]
     keys = [syb.name for syb in st.session_state.user.health.subsystems.values()]
@@ -62,16 +46,6 @@ def show(subs):
     plt2 = subs.calibrate(subs.data, subs.current_value, subs.h_level * 100)
     st.pyplot(plt2.gcf())
 
-    # st.write(f'Функция желательности {subs.name} = {h_level}%, \t   {subs.name} = {value}')
-    # values = [int(syb.h_level * 100) for syb in st.session_state.user.health.subsystems.values()]
-    # keys = [syb.name for syb in st.session_state.user.health.subsystems.values()]
-    # plt = st.session_state.user.health.create_diagram(keys, values)
-    # st.pyplot(plt.gcf())
-    # plt.close()
-    # st.write(f'Калибровочная диаграмма')
-    # plt2 = subs.calibrate(subs.data, subs.current_value, subs.h_level * 100)
-    # st.pyplot(plt2.gcf())
-
 
 if page == "Жировой запас":
     st.header("""Индекс массы тела (ИМТ)""")
@@ -80,21 +54,13 @@ if page == "Жировой запас":
     height = st.number_input(' рост в сантиметрах', value=170, placeholder="Рост в см")
 
     if st.button('Рассчитать функцию желательности '):
-        imt = hs.IMT()
-        imt.health = st.session_state.user.health
+        imt = hs.IMT()  # Создаем объект Subsys,
+        imt.health = st.session_state.user.health  # добавляем в него общий по сессии объект Health
         imt.load()
         imt.calc(weight=weight, height=height)
         show(imt)
-        # st.session_state.user.health.add_subsystem(subs)
-        # h_level, value = subs.calc(weight=weight, height=height)
-        # show(subs)
+        # st.write(f'Функция желательности {imt.name} = {h_level}%, \t   {imt.name} = {value}')
 
-        # fig, plt = user.health.create_diagram(['ИМТ', 'Сердце', 'Легкие'], [25, 70, 80])
-        # st.pyplot(plt.gcf())
-        # plt.close()
-        # st.write(f'Калибровочная диаграмма')
-        # plt2 = h_s.HarringtonShow()
-        # st.pyplot(plt2.gcf())
 
 elif page == "Сердце":
     st.header("""Сердце:""")
@@ -109,21 +75,6 @@ elif page == "Сердце":
         heart.load()
         heart.calc(input_value)
         show(heart)
-        # st.session_state.user.health.add_subsystem(heart)
-        # values = [int(syb.h_level * 100) for syb in st.session_state.user.health.subsystems.values()]
-        # keys = [syb.name for syb in st.session_state.user.health.subsystems.values()]
-        # plt = st.session_state.user.health.create_diagram(keys, values)
-        # st.pyplot(plt.gcf())
-        # plt.close()
-        # st.write(f'Калибровочная диаграмма')
-        # plt2 = heart.calibrate(heart.data, heart.current_value, heart.h_level * 100)
-        # st.pyplot(plt2.gcf())
-
-        # pulse = hs.Pulse()
-        # pulse.health = user.health
-        # pulse.load('heart.json')
-        # h_level = pulse.calc(input_value)
-        # st.write(f'Функция желательности пульса = {h_level}%')
 
 
 elif page == "Легкие":
@@ -139,13 +90,6 @@ elif page == "Легкие":
         resp.load()
         resp.calc(input_value)
         show(resp)
-        # st.session_state.user.health.add_subsystem(resp)
-        # values = [int(syb.h_level * 100) for syb in st.session_state.user.health.subsystems.values()]
-        # keys = [syb.name for syb in st.session_state.user.health.subsystems.values()]
-        # plt = st.session_state.user.health.create_diagram(keys, values)
-        # st.pyplot(plt.gcf())
-        # h_level = resp.calc(input_value)
-        # st.write(f'Функция желательности легких = {h_level}%')
 
     # st.latex(r'''
     #             F(x) = exp(-(\gamma x)^{-1/\gamma}1\{x>0\})

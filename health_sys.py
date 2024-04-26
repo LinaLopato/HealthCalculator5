@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from datetime import datetime
+import abc
 
 
 def set_application_parameters():
@@ -108,7 +109,7 @@ class User:
         print(f'Сердце - {val}')
 
 
-class Subsys:
+class Subsys(abc.ABC):
     def __init__(self):
         self.harrington = Harrington()
         self.health = None  # Ссылка на родителя
@@ -117,11 +118,16 @@ class Subsys:
         self.current_value = None  # Текущее показание
         self.h_level = None  # Показатель Харрингтона
 
+    @abc.abstractmethod
     def load(self):
-        self.data = self.__class__.__name__.lower()+'.json'
-        self.harrington.load()
+        """Загружаем начальные данные"""
+        ...
+        # self.data = self.__class__.__name__.lower()+'.json'
+        # self.harrington.load()
 
+    @abc.abstractmethod
     def calc(self):
+        """Считаем функцию желательности"""
         ...
 
     def calibrate(self, json_name: str, x: int, z: int) -> plt:
@@ -484,6 +490,7 @@ class IMT(Subsys):
         self.h_level = None  # Показатель Харрингтона
 
     def load(self):
+        """Загружаем начальные данные"""
         json_name = self.__class__.__name__.lower()+'.json'
         self.harrington.data(json_name)
         self.harrington.load()
