@@ -22,7 +22,7 @@ hide circle
 'skinparam monochrome true
 'note " lots in deal" as spread
 'package Storage {
-class Pulse{
+class Heart{
 gender
 pulse
 }
@@ -63,7 +63,7 @@ load()
 calc()
 }
 Harrington2 "1"-"2" Harrington1
-Pulse --|> Subsys
+Heart -|> Resp
 IMT --|> Subsys
 Resp --|> Subsys
 User -- Health
