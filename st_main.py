@@ -56,7 +56,7 @@ if page == "Жировой запас":
     if st.button('Рассчитать функцию желательности '):
         imt = hs.IMT()  # Создаем объект Subsys,
         imt.health = st.session_state.user.health  # добавляем в него общий по сессии объект Health
-        imt.load()
+        imt.load('imt.json')  # ctrl-q for a quick-doc of the function under the cursor.
         imt.calc(weight=weight, height=height)
         show(imt)
         # st.write(f'Функция желательности {imt.name} = {h_level}%, \t   {imt.name} = {value}')
@@ -72,7 +72,7 @@ elif page == "Сердце":
     if st.button('Рассчитать функцию желательности'):
         heart = hs.Heart()
         heart.health = st.session_state.user.health
-        heart.load()
+        heart.load('heart.json')
         heart.calc(input_value)
         show(heart)
 
@@ -87,7 +87,7 @@ elif page == "Легкие":
     if st.button('Рассчитать функцию желательности'):
         resp = hs.Resp()
         resp.health = st.session_state.user.health
-        resp.load()
+        resp.load('resp.json')
         resp.calc(input_value)
         show(resp)
 

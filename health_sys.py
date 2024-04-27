@@ -7,14 +7,14 @@ UML схема модуля
 Сценарий работы модуля:
 Тест модуля находится в папке model/tests.
 """
+import abc
 import json
 import math
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from datetime import datetime
-import abc
 
 
 def set_application_parameters():
@@ -119,11 +119,9 @@ class Subsys(abc.ABC):
         self.h_level = None  # Показатель Харрингтона
 
     @abc.abstractmethod
-    def load(self):
+    def load(self, json_name):
         """Загружаем начальные данные"""
         ...
-        # self.data = self.__class__.__name__.lower()+'.json'
-        # self.harrington.load()
 
     @abc.abstractmethod
     def calc(self):
@@ -489,9 +487,8 @@ class IMT(Subsys):
         self.current_value = None  # Текущее показание
         self.h_level = None  # Показатель Харрингтона
 
-    def load(self):
-        """Загружаем начальные данные"""
-        json_name = self.__class__.__name__.lower()+'.json'
+    def load(self, json_name):
+        # json_name = self.__class__.__name__.lower() + '.json'
         self.harrington.data(json_name)
         self.harrington.load()
 
@@ -513,8 +510,8 @@ class Resp(Subsys):
         self.current_value = 33  # Текущее показание
         self.h_level = None  # Показатель Харрингтона
 
-    def load(self):
-        json_name = self.__class__.__name__.lower()+'.json'
+    def load(self, json_name):
+        # json_name = self.__class__.__name__.lower() + '.json'
         self.data = json_name
         with open(json_name, 'r') as f:
             data = json.load(f)
@@ -570,6 +567,8 @@ class Heart(Resp):
     #     self.h_level = self.health.harrington.calc(self.good_pulse, self.bad_pulse, self.current_pulse)
     #     return self.h_level, pulse
     # print(f' gender\t{gender},\tage\t{age},\tpulse\t{pulse},\td_pulse\t{int(self.d_pulse * 100)}%')
+
+
 # class Pulse(Subsys):
 #     """Загрузка данных и расчет показателя пульса по Харрингтону """
 #
@@ -628,19 +627,19 @@ if __name__ == "__main__":
 
     imt = IMT()
     imt.health = user.health
-    imt.load()
+    imt.load('imt.json')
     imt.calc(90, 170)
     user.health.add_subsystem(imt)
 
     resp = Resp()
     resp.health = user.health
-    resp.load()
+    resp.load('resp.json')
     resp.calc(40)
     user.health.add_subsystem(resp)
 
     heart = Heart()
     heart.health = user.health
-    heart.load()
+    heart.load('heart.json')
     heart.calc(60)
     user.health.add_subsystem(heart)
 
