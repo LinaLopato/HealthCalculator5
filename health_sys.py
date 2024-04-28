@@ -241,6 +241,49 @@ class Harrington:
         return int(y)
 
 
+class HarringtonParabola(Harrington):
+    """Односторонний критерий Харрингтона """
+
+    def __init__(self, _subsys: Subsys = None, x_good=1, x_bad=0):
+        """Ахназарова С.Л., Кафаров В.В.; Методы оптимизации эксперимента в химической технологии;1985, с.209"""
+        super().__init__(_subsys)
+        self.health = _subsys  # Ссылка на родителя
+        # self.type = 'one'  # one, max, min
+        self.y_good = 0.8  # Назначаем "хороший" параметр, обычно d = 0.8
+        self.y_bad = 0.2  # Назначаем "плохой" параметр, обычно d = 0.2
+        self.h_good = -math.log(math.log(1 / self.y_good))  # Good результат уb_0 + b_1*y_good = h_good (1)
+        self.h_bad = -math.log(math.log(1 / self.y_bad))  # Bad результат b_0 + b_1 * y_bad = h_bad (2)
+        self.b_0: float = 0  # Первый коэффициент в уравнении Харрингтона
+        self.b_1: float = 0  # Второй коэффициент в уравнении Харрингтона
+        self.x_good = x_good  # Назначаем "хороший" параметр Y при self.d_good
+        self.x_bad = x_bad  # Назначаем "плохой" параметр Y при self.d_bad
+        self.x_optimum = 80
+        self.y_optimum = 1
+        self.load()  # Считаем коэффициенты в уравнении Харрингтона
+        self.h_level: float = 0  # Частная функция желательности (d) Харрингтона для параметра y
+        self.a = 1
+        self.x_level = 1
+
+    def load(self):
+        # Парабола y = ax**2 + bx + c или
+        # y = a(x + q)**2 + z, где  q = b/2a,  z = - (b**2 - 4ac) / 4a
+
+        # Ахназарова с. 207   h_level = exp [—ехр(— у')], где у’ = bo + b1 * у'
+        self.b_1 = (self.h_good - self.h_bad) / (self.x_good - self.x_bad)  # Считаем b_1 из уравнений (1) и (2)
+        self.b_0 = self.h_good - self.b_1 * self.x_good  # Считаем b_0 из уравнений (1) и (2)
+        self.a = self.y_optimum / self.x_optimum ** 2
+        self.x_level = self.h_bad + (self.x_good - self.h_bad) / 1.25
+        # self.x_level = self.h_good + (self.x_bad - self.h_good) / 1.25
+
+    def calc(self, x: float):
+        """ Ахназарова с. 207   d = exp [—ехр(— у')]  у’ = bo + b1 * у' """
+        if x < self.x_level:
+            self.h_level = math.exp(-math.exp(-(self.b_0 + self.b_1 * x)))  # Считаем d по Ахназаровой с.207
+        else:
+            self.h_level = -self.a * (x - self.x_optimum) ** 2 + self.y_optimum  #
+        return self.h_level  # Частная функция желательности d
+
+
 class HarringtonOne(Harrington):
     """Односторонний критерий Харрингтона """
 
@@ -441,38 +484,38 @@ class HarringtonTwoOne(Harrington):
 #         return self.d
 #
 #
-# class Harrington2:
-#     """Двухсторонний критерий Харрингтона"""
-#
-#     def __init__(self, _health: Health = None):
-#         """Ахназарова С.Л., Кафаров В.В.; Методы оптимизации эксперимента в химической технологии;1985, с.207"""
-#         self.health = _health  # Ссылка на родителя
-#         self.d_good = 0.8  # Хороший результат по Харрингтону
-#         self.d: float = 0  # Частная функция желательности Харрингтона для параметра y
-#
-#         self.y_max = 25  # 65
-#         self.y_min = 18.5  # 10
-#         self.current_IMT = None
-#         self.param = 20.5
-#         self.d_param = 0.75  # 0.6
-#         self.y1 = None
-#         self.y = None
-#         self.n = None
-#
-#     def calc(self, y_max: float, y_min: float, y: float):
-#         """ Ахназарова с. 207   d=exp[—(|у'|)**n  у_d = 2y- (y_max + y_min) / (y_max - y_min) ' """
-#         y_d = (2 * y - (y_max + y_min)) / (y_max - y_min)  # Считаем у_d из уравнения
-#         z = math.log(math.fabs(y_d))
-#         n = math.log(math.log(1 / self.d_good) / z)  # Считаем показатель степени
-#         self.d = math.exp(-math.fabs(y_d) ** n)  # Считаем d по Ахназаровой с.207
-#         return self.d
-#
-#     def calc2(self, x: float):  # Написано Матвеем
-#         self.y1 = (2 * self.param - (self.y_max + self.y_min)) / (self.y_max - self.y_min)
-#         self.n = (math.log(math.log(1 / self.d_param))) / (math.log(math.fabs(self.y1)))
-#         self.y = (2 * x - (self.y_max + self.y_min)) / (self.y_max - self.y_min)
-#         self.d = math.exp(-(math.fabs(self.y) ** self.n))
-#         return self.d
+class Harrington2:
+    """Двухсторонний критерий Харрингтона"""
+
+    def __init__(self, _health: Health = None):
+        """Ахназарова С.Л., Кафаров В.В.; Методы оптимизации эксперимента в химической технологии;1985, с.207"""
+        self.health = _health  # Ссылка на родителя
+        self.d_good = 0.8  # Хороший результат по Харрингтону
+        self.d: float = 0  # Частная функция желательности Харрингтона для параметра y
+
+        self.y_max = 25  # 65
+        self.y_min = 18.5  # 10
+        self.current_IMT = None
+        self.param = 20.5
+        self.d_param = 0.75  # 0.6
+        self.y1 = None
+        self.y = None
+        self.n = None
+
+    def calc(self, y_max: float, y_min: float, y: float):
+        """ Ахназарова с. 207   d=exp[—(|у'|)**n  у_d = 2y- (y_max + y_min) / (y_max - y_min) ' """
+        y_d = (2 * y - (y_max + y_min)) / (y_max - y_min)  # Считаем у_d из уравнения
+        z = math.log(math.fabs(y_d))
+        n = math.log(math.log(1 / self.d_good) / z)  # Считаем показатель степени
+        self.d = math.exp(-math.fabs(y_d) ** n)  # Считаем d по Ахназаровой с.207
+        return self.d
+
+    def calc2(self, x: float):  # Написано Матвеем
+        self.y1 = (2 * self.param - (self.y_max + self.y_min)) / (self.y_max - self.y_min)
+        self.n = (math.log(math.log(1 / self.d_param))) / (math.log(math.fabs(self.y1)))
+        self.y = (2 * x - (self.y_max + self.y_min)) / (self.y_max - self.y_min)
+        self.d = math.exp(-(math.fabs(self.y) ** self.n))
+        return self.d
 
 
 class IMT(Subsys):
@@ -507,6 +550,7 @@ class Resp(Subsys):
         self.data = 'resp.json'
         self.health = _health  # Ссылка на родителя
         self.harrington = HarringtonOne()
+        # self.harrington = HarringtonParabola()
         self.current_value = 33  # Текущее показание
         self.h_level = None  # Показатель Харрингтона
 
@@ -651,8 +695,8 @@ if __name__ == "__main__":
         # json_file_name = subsys.__class__.__name__.lower() + '.json'
         subsys.calibrate(subsys.data, subsys.current_value, subsys.h_level * 100)
 
-    print(keys)
-    print(values)
+    # print(keys)
+    # print(values)
 
     # user.health.subsystems['Resp'] = resp
     # imt = IMT()
